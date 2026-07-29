@@ -1,6 +1,7 @@
 import {
   createProjectService,
   getAllProjectsService,
+  getProjectByIdService,
 } from "../services/project.service.js";
 
 export async function createProjectController(req, res) {
@@ -36,6 +37,18 @@ export async function getAllProjectsController(req, res) {
     const projects = await getAllProjectsService(userId);
 
     return res.status(200).json({ projects });
+  } catch (e) {
+    return res.status(400).json({ message: e.message });
+  }
+}
+
+export async function getProjectByIdController(req, res) {
+  const userId = req.user.userId;
+  const projectId = req.params.Id;
+
+  try {
+    const project = await getProjectByIdService(projectId, userId);
+    return res.status(200).json({ project });
   } catch (e) {
     return res.status(400).json({ message: e.message });
   }

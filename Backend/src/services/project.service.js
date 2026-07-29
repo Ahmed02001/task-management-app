@@ -31,3 +31,17 @@ export async function getAllProjectsService(userId) {
 
   return allProjects;
 }
+
+export async function getProjectByIdService(projectId, userId) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: { members: true },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  if (!project.members.some((member) => member.userId === userId))
+    throw new Error("You do not have access to this project");
+
+  return project;
+}
