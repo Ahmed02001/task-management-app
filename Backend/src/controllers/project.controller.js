@@ -1,4 +1,7 @@
-import { createProjectService } from "../services/project.service.js";
+import {
+  createProjectService,
+  getAllProjectsService,
+} from "../services/project.service.js";
 
 export async function createProjectController(req, res) {
   const { name, description } = req.body;
@@ -21,6 +24,18 @@ export async function createProjectController(req, res) {
     return res
       .status(201)
       .json({ message: "Project Created Successfully", createProject });
+  } catch (e) {
+    return res.status(400).json({ message: e.message });
+  }
+}
+
+export async function getAllProjectsController(req, res) {
+  const userId = req.user.userId;
+
+  try {
+    const projects = await getAllProjectsService(userId);
+
+    return res.status(200).json({ projects });
   } catch (e) {
     return res.status(400).json({ message: e.message });
   }

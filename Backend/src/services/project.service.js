@@ -19,3 +19,15 @@ export async function createProjectService(name, description, ownerId) {
   });
   return result;
 }
+
+export async function getAllProjectsService(userId) {
+  const allProjects = await prisma.project.findMany({
+    where: {
+      members: {
+        some: { userId: userId },
+      },
+    },
+  });
+
+  return allProjects;
+}
