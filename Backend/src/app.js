@@ -1,6 +1,7 @@
 import express from "express";
 
 import cors from "cors";
+import authRouter from "./routes/auth.routes.js";
 
 export const app = express();
 
@@ -10,3 +11,5 @@ app.use(express.json());
 app.get("/health", (req, res) =>
   res.status(200).json({ message: "Server is running" }),
 );
+
+app.use("/api/auth", authRouter);
