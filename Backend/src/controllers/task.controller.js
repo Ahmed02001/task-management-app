@@ -6,7 +6,7 @@ import {
   updateTaskService,
 } from "../services/task.service.js";
 
-export async function createTaskController(req, res) {
+export async function createTaskController(req, res, next) {
   const projectId = req.params.projectId;
   const creatorId = req.user?.userId;
   const { title, description, priority, dueDate, assigneeId } = req.body;
@@ -33,14 +33,12 @@ export async function createTaskController(req, res) {
       message: "Task created successfully",
       task,
     });
-  } catch (error) {
-    return res.status(400).json({
-      message: error.message || "Failed to create task",
-    });
+  } catch (e) {
+    next(e);
   }
 }
 
-export async function getAllTasksController(req, res) {
+export async function getAllTasksController(req, res, next) {
   try {
     const projectId = req.params.projectId;
 
@@ -61,14 +59,12 @@ export async function getAllTasksController(req, res) {
       count: tasks.length,
       tasks,
     });
-  } catch (error) {
-    return res.status(400).json({
-      message: error.message || "Failed to retrieve tasks",
-    });
+  } catch (e) {
+    next(e);
   }
 }
 
-export async function getTaskByIdController(req, res) {
+export async function getTaskByIdController(req, res, next) {
   try {
     const projectId = req.params.projectId;
     const { taskId } = req.params;
@@ -85,15 +81,12 @@ export async function getTaskByIdController(req, res) {
       message: "Task retrieved successfully",
       task,
     });
-  } catch (error) {
-    const statusCode = error.message === "Task not found" ? 404 : 400;
-    return res.status(statusCode).json({
-      message: error.message || "Failed to retrieve task",
-    });
+  } catch (e) {
+    next(e);
   }
 }
 
-export async function updateTaskController(req, res) {
+export async function updateTaskController(req, res, next) {
   try {
     const projectId = req.params.projectId;
     const { taskId } = req.params;
@@ -121,23 +114,12 @@ export async function updateTaskController(req, res) {
       message: "Task updated successfully",
       task: updatedTask,
     });
-  } catch (error) {
-    let statusCode = 400;
-    if (error.message === "Task not found") {
-      statusCode = 404;
-    } else if (
-      error.message === "You do not have permission to update this task"
-    ) {
-      statusCode = 403;
-    }
-
-    return res.status(statusCode).json({
-      message: error.message || "Failed to update task",
-    });
+  } catch (e) {
+    next(e);
   }
 }
 
-export async function deleteTaskController(req, res) {
+export async function deleteTaskController(req, res, next) {
   try {
     const projectId = req.params.projectId;
     const { taskId } = req.params;
@@ -163,18 +145,7 @@ export async function deleteTaskController(req, res) {
     return res.status(200).json({
       message: "Task deleted successfully",
     });
-  } catch (error) {
-    let statusCode = 400;
-    if (error.message === "Task not found") {
-      statusCode = 404;
-    } else if (
-      error.message === "You do not have permission to delete this task"
-    ) {
-      statusCode = 403;
-    }
-
-    return res.status(statusCode).json({
-      message: error.message || "Failed to delete task",
-    });
+  } catch (e) {
+    next(e);
   }
 }

@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import AppError from "../utils/app.error.js";
 
 export async function createTaskService(projectId, creatorId, taskData) {
   const { title, description, priority, dueDate, assigneeId } = taskData;
@@ -11,8 +12,9 @@ export async function createTaskService(projectId, creatorId, taskData) {
       },
     });
 
+    // 400 Bad Request
     if (!isAssigneeMember) {
-      throw new Error("Assignee is not a member of this project.");
+      throw new AppError("Assignee is not a member of this project.", 400);
     }
   }
 
@@ -21,11 +23,10 @@ export async function createTaskService(projectId, creatorId, taskData) {
       title,
       description,
       priority,
-      dueDate: new Date(dueDate),
+      dueDate: dueDate ? new Date(dueDate) : null,
       projectId,
-      creatorId, // or authorId depending on your Prisma schema field name
+      creatorId,
       assigneeId: assigneeId || null,
-      // status field defaults to 'TODO' from schema
     },
     include: {
       assignee: {
@@ -110,8 +111,9 @@ export async function getTaskByIdService(taskId, projectId) {
     },
   });
 
+  // 404 Not Found
   if (!task) {
-    throw new Error("Task not found");
+    throw new AppError("Task not found", 404);
   }
 
   return task;
@@ -131,15 +133,18 @@ export async function updateTaskService(
     },
   });
 
+  // 404 Not Found
   if (!task) {
-    throw new Error("Task not found");
+    throw new AppError("Task not found", 404);
   }
+
   const isCreator = task.creatorId === requesterId;
   const isAssignee = task.assigneeId === requesterId;
   const isProjectOwner = project?.ownerId === requesterId;
 
+  // 403 Forbidden
   if (!isCreator && !isAssignee && !isProjectOwner) {
-    throw new Error("You do not have permission to update this task");
+    throw new AppError("You do not have permission to update this task", 403);
   }
 
   if (updates.assigneeId) {
@@ -150,8 +155,9 @@ export async function updateTaskService(
       },
     });
 
+    // 400 Bad Request
     if (!isAssigneeMember) {
-      throw new Error("Assignee is not a member of this project.");
+      throw new AppError("Assignee is not a member of this project.", 400);
     }
   }
 
@@ -215,16 +221,18 @@ export async function deleteTaskService(
     },
   });
 
+  // 404 Not Found
   if (!task) {
-    throw new Error("Task not found");
+    throw new AppError("Task not found", 404);
   }
 
   const isCreator = task.creatorId === requesterId;
   const isProjectOwner = project?.ownerId === requesterId;
   const isAdmin = requesterRole === "ADMIN";
 
+  // 403 Forbidden
   if (!isCreator && !isProjectOwner && !isAdmin) {
-    throw new Error("You do not have permission to delete this task");
+    throw new AppError("You do not have permission to delete this task", 403);
   }
 
   const deletedTask = await prisma.task.delete({
