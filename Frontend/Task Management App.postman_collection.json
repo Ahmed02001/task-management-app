@@ -1,0 +1,556 @@
+{
+  "info": {
+    "_postman_id": "f2db2922-4b63-47f0-aef7-a3a2a18a8ce1",
+    "name": "Task Management App",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "40931734"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Ahmed Ali\",\r\n    \"email\": \"ahmedhamdyy@gmail.com\",\r\n    \"password\": \"ahmed544242\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/auth/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"ahmedhamdyy787@gmail.com\",\r\n    \"password\": \"ahmed224242\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{bearer_token_008b}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3035/api/auth/me",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "create project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text",
+                "disabled": true
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"C++ Project\",\r\n    \"description\": \"this is very large project to make bank system\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all Projects",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"C++ Project\",\r\n    \"description\": \"this is very large project to make bank system\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get project by id",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"C++ Project\",\r\n    \"description\": \"this is very large project to make bank system\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms6lzmvs00006susz6xkk92a",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms6lzmvs00006susz6xkk92a"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update project",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"C# Project\",\r\n    \"description\": \"this is very large project to make bank system and use OOP\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms6lzmvs00006susz6xkk92a",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms6lzmvs00006susz6xkk92a"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete project",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"C# Project\",\r\n    \"description\": \"this is very large project to make bank system and use OOP\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms6lzmvs00006susz6xkk92a",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms6lzmvs00006susz6xkk92a"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "add member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": \"cms712fkn000248us5k8jlbex\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms70x9ug000048us8lurncph/members",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms70x9ug000048us8lurncph",
+                "members"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete member",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "create task",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Setup Express Router\",\r\n  \"description\": \"Configure task router and mount middleware\",\r\n  \"priority\": \"MEDIUM\",\r\n  \"dueDate\": \"2026-08-10T12:00:00.000Z\",\r\n  \"assigneeId\": \"cms712fkn000248us5k8jlbex\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms70x9ug000048us8lurncph/tasks",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms70x9ug000048us8lurncph",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all tasks",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Setup Express Router\",\r\n  \"description\": \"Configure task router and mount middleware\",\r\n  \"priority\": \"MEDIUM\",\r\n  \"dueDate\": \"2026-08-10T12:00:00.000Z\",\r\n  \"assigneeId\": \"cms712fkn000248us5k8jlbex\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms70x9ug000048us8lurncph/tasks",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms70x9ug000048us8lurncph",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get task by id",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Setup Express Router\",\r\n  \"description\": \"Configure task router and mount middleware\",\r\n  \"priority\": \"MEDIUM\",\r\n  \"dueDate\": \"2026-08-10T12:00:00.000Z\",\r\n  \"assigneeId\": \"cms712fkn000248us5k8jlbex\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms70x9ug000048us8lurncph/tasks/cms74hps10000hwuso3hwzqmx",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms70x9ug000048us8lurncph",
+                "tasks",
+                "cms74hps10000hwuso3hwzqmx"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{json_web_token_0joh}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Setup Express Framework\",\r\n  \"description\": \"Configure task router and mount middleware\",\r\n  \"priority\": \"HIGH\",\r\n  \"dueDate\": \"2026-08-10T12:00:00.000Z\",\r\n  \"assigneeId\": \"cms712fkn000248us5k8jlbex\"\r\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3035/api/projects/cms70x9ug000048us8lurncph/tasks/cms74hps10000hwuso3hwzqmx",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3035",
+              "path": [
+                "api",
+                "projects",
+                "cms70x9ug000048us8lurncph",
+                "tasks",
+                "cms74hps10000hwuso3hwzqmx"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete Task",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3035/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3035",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "json_web_token_0joh",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_1dla",
+      "secret": true
+    },
+    {
+      "key": "bearer_token_008b",
+      "secret": true
+    },
+    {
+      "key": "json_web_token_192y",
+      "secret": true
+    }
+  ]
+}
