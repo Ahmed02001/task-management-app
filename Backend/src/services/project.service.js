@@ -45,3 +45,59 @@ export async function getProjectByIdService(projectId, userId) {
 
   return project;
 }
+
+export async function updateProjectService(
+  projectId,
+  userId,
+  userRole,
+  updates,
+) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  const isOwner = project.ownerId === userId;
+  const isAdmin = userRole === "ADMIN";
+
+  if (!isOwner && !isAdmin)
+    throw new Error("You do not have permission to update this project");
+
+  const allowedFields = ["name", "description"];
+  const filteredUpdates = {};
+  for (const key of allowedFields) {
+    if (updates[key] !== undefined) {
+      filteredUpdates[key] = updates[key];
+    }
+  }
+
+  const updatedProject = await prisma.project.update({
+    where: { id: projectId },
+    data: filteredUpdates,
+  });
+
+  return updatedProject;
+}
+
+export async function deleteProjectService(projectId, userId, userRole) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  const isOwner = project.ownerId === userId;
+  const isAdmin = userRole === "ADMIN";
+
+  if (!isOwner && !isAdmin)
+    throw new Error("You do not have permission to delete this project");
+
+  const deletedProject = await prisma.$transaction(async (tx) => {
+    await tx.task.deleteMany({ where: { projectId } });
+    await tx.projectMember.deleteMany({ where: { projectId } });
+    return tx.project.delete({ where: { id: projectId } });
+  });
+
+  return deletedProject;
+}

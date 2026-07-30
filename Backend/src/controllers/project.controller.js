@@ -2,6 +2,8 @@ import {
   createProjectService,
   getAllProjectsService,
   getProjectByIdService,
+  updateProjectService,
+  deleteProjectService,
 } from "../services/project.service.js";
 
 export async function createProjectController(req, res) {
@@ -49,6 +51,48 @@ export async function getProjectByIdController(req, res) {
   try {
     const project = await getProjectByIdService(projectId, userId);
     return res.status(200).json({ project });
+  } catch (e) {
+    return res.status(400).json({ message: e.message });
+  }
+}
+
+export async function updateProjectController(req, res) {
+  const projectId = req.params.Id;
+  const userId = req.user.userId;
+  const userRole = req.user.role;
+  const updates = req.body;
+
+  try {
+    const updatedProject = await updateProjectService(
+      projectId,
+      userId,
+      userRole,
+      updates,
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Project Updated Successfully", updatedProject });
+  } catch (e) {
+    return res.status(400).json({ message: e.message });
+  }
+}
+
+export async function deleteProjectController(req, res) {
+  const projectId = req.params.Id;
+  const userId = req.user.userId;
+  const userRole = req.user.role;
+
+  try {
+    const deletedProject = await deleteProjectService(
+      projectId,
+      userId,
+      userRole,
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Project Deleted Successfully", deletedProject });
   } catch (e) {
     return res.status(400).json({ message: e.message });
   }
