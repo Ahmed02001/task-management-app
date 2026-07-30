@@ -1,4 +1,5 @@
 import {
+  getCurrentUserService,
   loginUserService,
   registerUserService,
 } from "../services/auth.service.js";
@@ -33,5 +34,22 @@ export async function loginUserController(req, res, next) {
     return res.status(200).json({ message: "Login successful", result });
   } catch (e) {
     next(e);
+  }
+}
+
+export async function getCurrentUserController(req, res, next) {
+  try {
+    const userId = req.user.userId;
+
+    const user = await getCurrentUserService(userId);
+
+    return res.status(200).json({
+      message: "User profile fetched successfully",
+      result: {
+        user,
+      },
+    });
+  } catch (error) {
+    next(error);
   }
 }
