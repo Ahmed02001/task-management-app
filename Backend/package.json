@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --experimental-vm-modules -r dotenv/config node_modules/jest/bin/jest.js --runInBand --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +23,9 @@
     "pg": "^8.22.0"
   },
   "devDependencies": {
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14",
-    "prisma": "^7.9.1"
+    "prisma": "^7.9.1",
+    "supertest": "^7.2.2"
   }
 }
