@@ -1,0 +1,479 @@
+openapi: 3.0.0
+info:
+  title: TaskManager API
+  description: Complete API Documentation for TaskManager Backend Application
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cms7836ud0000f0usb4ks7w44
+        name:
+          type: string
+          example: Test Developer
+        email:
+          type: string
+          example: user@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T07:59:25.148Z"
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cms7837bw0001f0usyhs921ux
+        name:
+          type: string
+          example: Test Project
+        description:
+          type: string
+          example: Project for task management
+        ownerId:
+          type: string
+          example: cms7836ud0000f0usb4ks7w44
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T07:59:25.148Z"
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cms7838zk0002f0usyhs922aa
+        title:
+          type: string
+          example: Setup Unit Tests
+        description:
+          type: string
+          example: Write tests using Jest and Supertest
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+          example: HIGH
+        dueDate:
+          type: string
+          format: date-time
+          example: "2026-12-31T23:59:59.000Z"
+        projectId:
+          type: string
+          example: cms7837bw0001f0usyhs921ux
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T08:00:00.000Z"
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==========================================
+  # AUTH ENDPOINTS
+  # ==========================================
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Test Developer
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User registered successfully
+                  result:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+        409:
+          description: Email already registered
+
+  /auth/login:
+    post:
+      summary: Login user and return JWT token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login successful
+                  result:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      user:
+                        $ref: "#/components/schemas/User"
+        401:
+          description: Invalid credentials
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user profile
+      tags: [Auth]
+      responses:
+        200:
+          description: Current user profile details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+        401:
+          description: Unauthorized
+
+  # ==========================================
+  # PROJECT ENDPOINTS
+  # ==========================================
+  /projects:
+    post:
+      summary: Create a new project
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: Test Project
+                description:
+                  type: string
+                  example: Project description here
+      responses:
+        201:
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Project Created Successfully
+                  createProject:
+                    $ref: "#/components/schemas/Project"
+        401:
+          description: Unauthorized
+
+    get:
+      summary: Get all projects owned by the authenticated user
+      tags: [Projects]
+      responses:
+        200:
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      summary: Get project details by ID
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: cms7837bw0001f0usyhs921ux
+      responses:
+        200:
+          description: Project details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    $ref: "#/components/schemas/Project"
+        404:
+          description: Project not found
+
+    put:
+      summary: Update project details
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Project Name
+                description:
+                  type: string
+                  example: Updated description
+      responses:
+        200:
+          description: Project updated successfully
+        404:
+          description: Project not found
+
+    delete:
+      summary: Delete a project
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Project deleted successfully
+        404:
+          description: Project not found
+
+  # ==========================================
+  # TASK ENDPOINTS
+  # ==========================================
+  /projects/{projectId}/tasks:
+    post:
+      summary: Create a new task in a project
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  example: Setup Unit Tests
+                description:
+                  type: string
+                  example: Write tests using Jest and Supertest
+                priority:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH]
+                  example: HIGH
+                dueDate:
+                  type: string
+                  format: date-time
+                  example: "2026-12-31T23:59:59.000Z"
+      responses:
+        201:
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  createTask:
+                    $ref: "#/components/schemas/Task"
+
+    get:
+      summary: Get all tasks for a project with optional filters
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: priority
+          schema:
+            type: string
+            enum: [LOW, MEDIUM, HIGH]
+          description: Filter tasks by priority
+      responses:
+        200:
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Task"
+
+  /projects/{projectId}/tasks/{taskId}:
+    get:
+      summary: Get task details by ID
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: "#/components/schemas/Task"
+        404:
+          description: Task not found
+
+    put:
+      summary: Update a task
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Updated Task Title
+                description:
+                  type: string
+                  example: Updated description
+                priority:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH]
+                dueDate:
+                  type: string
+                  format: date-time
+      responses:
+        200:
+          description: Task updated successfully
+        404:
+          description: Task not found
+
+    delete:
+      summary: Delete a task
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task deleted successfully
+        404:
+          description: Task not found
