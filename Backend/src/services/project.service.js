@@ -1,4 +1,5 @@
 import { prisma } from "../config/prisma.js";
+import AppError from "../utils/app.error.js";
 
 export async function createProjectService(name, description, ownerId) {
   const result = await prisma.$transaction(async (tx) => {
@@ -38,10 +39,15 @@ export async function getProjectByIdService(projectId, userId) {
     include: { members: true },
   });
 
-  if (!project) throw new Error("Project not found");
+  // 404 Not Found
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
 
-  if (!project.members.some((member) => member.userId === userId))
-    throw new Error("You do not have access to this project");
+  // 403 Forbidden
+  if (!project.members.some((member) => member.userId === userId)) {
+    throw new AppError("You do not have access to this project", 403);
+  }
 
   return project;
 }
@@ -56,13 +62,21 @@ export async function updateProjectService(
     where: { id: projectId },
   });
 
-  if (!project) throw new Error("Project not found");
+  // 404 Not Found
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
 
   const isOwner = project.ownerId === userId;
   const isAdmin = userRole === "ADMIN";
 
-  if (!isOwner && !isAdmin)
-    throw new Error("You do not have permission to update this project");
+  // 403 Forbidden
+  if (!isOwner && !isAdmin) {
+    throw new AppError(
+      "You do not have permission to update this project",
+      403,
+    );
+  }
 
   const allowedFields = ["name", "description"];
   const filteredUpdates = {};
@@ -85,13 +99,21 @@ export async function deleteProjectService(projectId, userId, userRole) {
     where: { id: projectId },
   });
 
-  if (!project) throw new Error("Project not found");
+  // 404 Not Found
+  if (!project) {
+    throw new AppError("Project not found", 404);
+  }
 
   const isOwner = project.ownerId === userId;
   const isAdmin = userRole === "ADMIN";
 
-  if (!isOwner && !isAdmin)
-    throw new Error("You do not have permission to delete this project");
+  // 403 Forbidden
+  if (!isOwner && !isAdmin) {
+    throw new AppError(
+      "You do not have permission to delete this project",
+      403,
+    );
+  }
 
   const deletedProject = await prisma.$transaction(async (tx) => {
     await tx.task.deleteMany({ where: { projectId } });
@@ -111,24 +133,28 @@ export async function addMemberService(
     where: { id: projectId },
   });
 
+  // 404 Not Found
   if (!project) {
-    throw new Error("Project not found");
+    throw new AppError("Project not found", 404);
   }
 
+  // 403 Forbidden
   if (project.ownerId !== requesterId) {
-    throw new Error("Only the project owner can add new members");
+    throw new AppError("Only the project owner can add new members", 403);
   }
 
   const userToAdd = await prisma.user.findUnique({
     where: { id: newMemberUserId },
   });
 
+  // 404 Not Found
   if (!userToAdd) {
-    throw new Error("User to add was not found");
+    throw new AppError("User to add was not found", 404);
   }
 
+  // 400 Bad Request
   if (project.ownerId === newMemberUserId) {
-    throw new Error("User is already the owner of this project");
+    throw new AppError("User is already the owner of this project", 400);
   }
 
   const existingMember = await prisma.projectMember.findFirst({
@@ -138,8 +164,9 @@ export async function addMemberService(
     },
   });
 
+  // 409 Conflict
   if (existingMember) {
-    throw new Error("User is already a member of this project");
+    throw new AppError("User is already a member of this project", 409);
   }
 
   const newMember = await prisma.projectMember.create({
@@ -167,9 +194,11 @@ export async function removeMemberService(
   requesterId,
   memberUserIdToRemove,
 ) {
+  // 400 Bad Request
   if (!projectId || !requesterId || !memberUserIdToRemove) {
-    throw new Error(
+    throw new AppError(
       "Missing required parameters: projectId, requesterId, and memberUserIdToRemove are required.",
+      400,
     );
   }
 
@@ -178,20 +207,27 @@ export async function removeMemberService(
     select: { id: true, ownerId: true },
   });
 
+  // 404 Not Found
   if (!project) {
-    throw new Error("Project not found.");
+    throw new AppError("Project not found.", 404);
   }
 
+  // 400 Bad Request
   if (memberUserIdToRemove === project.ownerId) {
-    throw new Error("The project owner cannot be removed from the project.");
+    throw new AppError(
+      "The project owner cannot be removed from the project.",
+      400,
+    );
   }
 
   const isOwner = project.ownerId === requesterId;
   const isSelfRemoval = requesterId === memberUserIdToRemove;
 
+  // 403 Forbidden
   if (!isOwner && !isSelfRemoval) {
-    throw new Error(
+    throw new AppError(
       "You do not have permission to remove this member from the project.",
+      403,
     );
   }
 
@@ -202,8 +238,9 @@ export async function removeMemberService(
     },
   });
 
+  // 404 Not Found
   if (!memberRecord) {
-    throw new Error("User is not a member of this project.");
+    throw new AppError("User is not a member of this project.", 404);
   }
 
   const removedMember = await prisma.projectMember.delete({

@@ -8,7 +8,7 @@ import {
   removeMemberService,
 } from "../services/project.service.js";
 
-export async function createProjectController(req, res) {
+export async function createProjectController(req, res, next) {
   const { name, description } = req.body;
 
   if (!name || !description) {
@@ -30,11 +30,11 @@ export async function createProjectController(req, res) {
       .status(201)
       .json({ message: "Project Created Successfully", createProject });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function getAllProjectsController(req, res) {
+export async function getAllProjectsController(req, res, next) {
   const userId = req.user.userId;
 
   try {
@@ -42,23 +42,23 @@ export async function getAllProjectsController(req, res) {
 
     return res.status(200).json({ projects });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function getProjectByIdController(req, res) {
+export async function getProjectByIdController(req, res, next) {
   const userId = req.user.userId;
-  const projectId = req.params.Id;
+  const projectId = req.params.id;
 
   try {
     const project = await getProjectByIdService(projectId, userId);
     return res.status(200).json({ project });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function updateProjectController(req, res) {
+export async function updateProjectController(req, res, next) {
   const projectId = req.params.id;
   const userId = req.user.userId;
   const userRole = req.user.role;
@@ -76,11 +76,11 @@ export async function updateProjectController(req, res) {
       .status(200)
       .json({ message: "Project Updated Successfully", updatedProject });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function deleteProjectController(req, res) {
+export async function deleteProjectController(req, res, next) {
   const projectId = req.params.id;
   const userId = req.user.userId;
   const userRole = req.user.role;
@@ -96,11 +96,11 @@ export async function deleteProjectController(req, res) {
       .status(200)
       .json({ message: "Project Deleted Successfully", deletedProject });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function addMemberController(req, res) {
+export async function addMemberController(req, res, next) {
   const projectId = req.params.id;
   const { userId: newMemberUserId } = req.body;
   const requesterId = req.user.userId;
@@ -116,11 +116,11 @@ export async function addMemberController(req, res) {
       member,
     });
   } catch (e) {
-    return res.status(400).json({ message: e.message });
+    next(e);
   }
 }
 
-export async function removeMemberController(req, res) {
+export async function removeMemberController(req, res, next) {
   const projectId = req.params.id;
   const memberUserIdToRemove = req.params.userId;
   const requesterId = req.user.userId;
@@ -143,8 +143,6 @@ export async function removeMemberController(req, res) {
       member: removedMember,
     });
   } catch (e) {
-    return res
-      .status(400)
-      .json({ message: e.message || "Failed to remove member" });
+    next(e);
   }
 }
