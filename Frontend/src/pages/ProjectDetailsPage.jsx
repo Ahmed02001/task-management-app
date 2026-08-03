@@ -8,26 +8,13 @@ import {
   DragOverlay,
   closestCorners,
 } from "@dnd-kit/core";
-import {
-  getAllTasks,
-  createTask,
-  updateTask,
-  deleteTask,
-} from "../services/taskService";
-import { getProjectById } from "../services/projectService";
+import { getAllTasks, updateTask, deleteTask } from "../services/taskService";
+import { getProjectById, removeMember } from "../services/projectService";
 import KanbanColumn from "../components/KanbanColumn";
 import TaskCard from "../components/TaskCard";
-const STATUS_TO_BACKEND = {
-  todo: "TODO",
-  "in-progress": "IN_PROGRESS",
-  done: "DONE",
-};
-
-const STATUS_TO_FRONTEND = {
-  TODO: "todo",
-  IN_PROGRESS: "in-progress",
-  DONE: "done",
-};
+import EditTaskModal from "../components/EditTaskModal";
+import CreateTaskModal from "../components/CreateTaskModal";
+import AddMemberModal from "../components/AddMemberModal";
 
 const COLUMNS = [
   { id: "todo", title: "To Do", badgeBg: "bg-amber-100 text-amber-800" },
@@ -39,12 +26,17 @@ const COLUMNS = [
   { id: "done", title: "Done", badgeBg: "bg-emerald-100 text-emerald-800" },
 ];
 
-const INITIAL_FORM_STATE = {
-  title: "",
-  description: "",
-  priority: "MEDIUM",
-  dueDate: "",
-  status: "todo",
+// Backend uses TODO / IN_PROGRESS / DONE. Board columns use lowercase-hyphenated ids.
+// Tasks in local state ALWAYS keep the BACKEND format for `status`.
+const STATUS_TO_BACKEND = {
+  todo: "TODO",
+  "in-progress": "IN_PROGRESS",
+  done: "DONE",
+};
+const STATUS_TO_FRONTEND = {
+  TODO: "todo",
+  IN_PROGRESS: "in-progress",
+  DONE: "done",
 };
 
 export default function ProjectDetailsPage() {
@@ -56,20 +48,17 @@ export default function ProjectDetailsPage() {
   const [error, setError] = useState(null);
   const [activeTask, setActiveTask] = useState(null);
 
-  // Modal State
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [newTaskData, setNewTaskData] = useState(INITIAL_FORM_STATE);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  // Filters — applied client-side since all tasks are already loaded
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [assigneeFilter, setAssigneeFilter] = useState("ALL");
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
-
-  useEffect(() => {
-    fetchProjectAndTasks();
-  }, [projectId]);
 
   async function fetchProjectAndTasks() {
     try {
@@ -90,16 +79,30 @@ export default function ProjectDetailsPage() {
     }
   }
 
+  useEffect(() => {
+    // Defer the fetch to avoid calling setState synchronously in the effect
+    // which can trigger the react-hooks/set-state-in-effect rule.
+    Promise.resolve().then(() => fetchProjectAndTasks());
+  }, [projectId]);
+
+  // Derived: tasks after applying the priority/assignee filters (view only —
+  // drag/delete/edit operations always act on the full `tasks` array).
+  const filteredTasks = tasks.filter((task) => {
+    const matchesPriority =
+      priorityFilter === "ALL" || task.priority === priorityFilter;
+    const matchesAssignee =
+      assigneeFilter === "ALL" || task.assigneeId === assigneeFilter;
+    return matchesPriority && matchesAssignee;
+  });
+
   const handleDragStart = (event) => {
-    const { active } = event;
-    const task = tasks.find((t) => (t.id || t._id) === active.id);
+    const task = tasks.find((t) => (t.id || t._id) === event.active.id);
     setActiveTask(task);
   };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     setActiveTask(null);
-
     if (!over) return;
 
     const activeId = active.id;
@@ -110,13 +113,10 @@ export default function ProjectDetailsPage() {
 
     let newFrontendStatus = overId;
     const overTask = tasks.find((t) => (t.id || t._id) === overId);
-    if (overTask) {
-      newFrontendStatus = STATUS_TO_FRONTEND[overTask.status];
-    }
+    if (overTask) newFrontendStatus = STATUS_TO_FRONTEND[overTask.status];
 
     const newBackendStatus = STATUS_TO_BACKEND[newFrontendStatus];
-
-    if (draggedTask.status === newBackendStatus) return;
+    if (!newBackendStatus || draggedTask.status === newBackendStatus) return;
 
     setTasks((prev) =>
       prev.map((t) =>
@@ -139,37 +139,15 @@ export default function ProjectDetailsPage() {
     }
   };
 
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    const { title, description, priority, dueDate } = newTaskData;
+  const handleTaskCreated = (newTask) => {
+    setTasks((prev) => [...prev, newTask]);
+  };
 
-    if (!title.trim() || !description.trim() || !priority || !dueDate) {
-      alert(
-        "All fields (Title, Description, Priority, Due Date) are required.",
-      );
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        ...newTaskData,
-        title: title.trim(),
-        description: description.trim(),
-        priority: priority.toUpperCase(),
-        dueDate: new Date(dueDate).toISOString(),
-      };
-
-      const createdTask = await createTask(projectId, payload);
-      setTasks((prev) => [...prev, createdTask]);
-      setIsTaskModalOpen(false);
-      setNewTaskData(INITIAL_FORM_STATE);
-    } catch (err) {
-      console.error("Task Creation Error:", err.response?.data);
-      alert(err.response?.data?.message || "Failed to create task");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleUpdateTask = async (taskId, updates) => {
+    const updatedTask = await updateTask(projectId, taskId, updates);
+    setTasks((prev) =>
+      prev.map((t) => ((t.id || t._id) === taskId ? updatedTask : t)),
+    );
   };
 
   const handleDeleteTask = async (taskId) => {
@@ -177,8 +155,29 @@ export default function ProjectDetailsPage() {
     try {
       await deleteTask(projectId, taskId);
       setTasks((prev) => prev.filter((t) => (t.id || t._id) !== taskId));
-    } catch (err) {
+    } catch (e) {
+      console.error("Failed to delete task:", e.message);
       alert("Failed to delete task");
+    }
+  };
+
+  const handleMemberAdded = (newMember) => {
+    setProject((prev) => ({
+      ...prev,
+      members: [...(prev.members || []), newMember],
+    }));
+  };
+
+  const handleRemoveMember = async (userId) => {
+    if (!window.confirm("Remove this member from the project?")) return;
+    try {
+      await removeMember(projectId, userId);
+      setProject((prev) => ({
+        ...prev,
+        members: prev.members.filter((m) => m.userId !== userId),
+      }));
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to remove member");
     }
   };
 
@@ -189,32 +188,111 @@ export default function ProjectDetailsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/projects"
-              className="text-sm font-semibold text-gray-500 hover:text-gray-800"
-            >
-              &larr; Back to Projects
-            </Link>
-            <span className="text-gray-300">|</span>
-            <h1 className="text-lg font-bold text-gray-900">
-              {project?.name || "Project"}
-            </h1>
-          </div>
-          <button
-            onClick={() => setIsTaskModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition"
+          <Link
+            to="/projects"
+            className="text-sm font-semibold text-gray-500 hover:text-gray-800"
           >
-            + New Task
-          </button>
+            &larr; Back to Projects
+          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAddMemberModalOpen(true)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50 transition"
+            >
+              + Add Member
+            </button>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg shadow-sm transition"
+            >
+              + New Task
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Board */}
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Project title + members */}
+        <div className="mb-6 text-left">
+          <h1 className="text-2xl font-extrabold text-gray-900">
+            {project?.name || "Project"}
+          </h1>
+          {project?.description && (
+            <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+          )}
+
+          {project?.members?.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {project.members.map((m) => (
+                <span
+                  key={m.id}
+                  className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full pl-1 pr-2 py-1 text-xs font-medium text-gray-700 shadow-sm"
+                >
+                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                    {m.user?.name?.[0]?.toUpperCase() || "U"}
+                  </span>
+                  {m.user?.name}
+                  {m.userId !== project.ownerId && (
+                    <button
+                      onClick={() => handleRemoveMember(m.userId)}
+                      className="text-gray-400 hover:text-red-500 ml-1"
+                      title="Remove member"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Filter toolbar */}
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-semibold text-gray-500">
+            Filter by:
+          </span>
+
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+          >
+            <option value="ALL">All Priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </select>
+
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+          >
+            <option value="ALL">All Members</option>
+            {project?.members?.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.user?.name}
+              </option>
+            ))}
+          </select>
+
+          {(priorityFilter !== "ALL" || assigneeFilter !== "ALL") && (
+            <button
+              onClick={() => {
+                setPriorityFilter("ALL");
+                setAssigneeFilter("ALL");
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium underline ml-auto"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
         {error ? (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium">
             {error}
@@ -228,7 +306,7 @@ export default function ProjectDetailsPage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
               {COLUMNS.map((col) => {
-                const columnTasks = tasks.filter(
+                const columnTasks = filteredTasks.filter(
                   (task) => task && STATUS_TO_FRONTEND[task.status] === col.id,
                 );
                 return (
@@ -237,6 +315,7 @@ export default function ProjectDetailsPage() {
                     column={col}
                     tasks={columnTasks}
                     onDeleteTask={handleDeleteTask}
+                    onEditTask={setEditingTask}
                   />
                 );
               })}
@@ -244,175 +323,37 @@ export default function ProjectDetailsPage() {
 
             <DragOverlay>
               {activeTask ? (
-                <TaskCard task={activeTask} onDelete={() => {}} />
+                <TaskCard
+                  task={activeTask}
+                  onDelete={() => {}}
+                  onEdit={() => {}}
+                />
               ) : null}
             </DragOverlay>
           </DndContext>
         )}
       </main>
 
-      {/* Complete Task Creation Modal */}
-      {isTaskModalOpen && (
-        <div
-          onClick={() => setIsTaskModalOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 p-6"
-          >
-            <h3 className="font-bold text-gray-900 text-lg mb-4">
-              Add New Task
-            </h3>
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              {/* Title Input */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={newTaskData.title}
-                  onChange={(e) =>
-                    setNewTaskData({ ...newTaskData, title: e.target.value })
-                  }
-                  placeholder="Task title..."
-                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onTaskCreated={handleTaskCreated}
+        projectId={projectId}
+      />
 
-              {/* Description Input */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                  Description *
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  value={newTaskData.description}
-                  onChange={(e) =>
-                    setNewTaskData({
-                      ...newTaskData,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="Task description..."
-                  className="w-full px-3.5 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                />
-              </div>
+      <EditTaskModal
+        isOpen={!!editingTask}
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onUpdateTask={handleUpdateTask}
+      />
 
-              {/* Priority & Due Date Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                    Priority *
-                  </label>
-                  <select
-                    required
-                    value={newTaskData.priority}
-                    onChange={(e) =>
-                      setNewTaskData({
-                        ...newTaskData,
-                        priority: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                  >
-                    <option value="LOW">LOW</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="HIGH">HIGH</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                    Due Date *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      required
-                      value={newTaskData.dueDate || ""}
-                      onChange={(e) =>
-                        setNewTaskData({
-                          ...newTaskData,
-                          dueDate: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white transition duration-200"
-                    />
-                    {newTaskData.dueDate && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setNewTaskData({
-                            ...newTaskData,
-                            dueDate: "",
-                          })
-                        }
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition"
-                        title="Clear date"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Select */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                  Initial Status
-                </label>
-                <select
-                  value={newTaskData.status}
-                  onChange={(e) =>
-                    setNewTaskData({ ...newTaskData, status: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                >
-                  <option value="todo">To Do</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="done">Done</option>
-                </select>
-              </div>
-
-              {/* Form Controls */}
-              <div className="pt-3 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsTaskModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 text-xs font-semibold rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-xs font-semibold text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? "Creating..." : "Create Task"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddMemberModal
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setIsAddMemberModalOpen(false)}
+        projectId={projectId}
+        onMemberAdded={handleMemberAdded}
+      />
     </div>
   );
 }

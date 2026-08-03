@@ -5,10 +5,13 @@ import {
 } from "@dnd-kit/sortable";
 import TaskCard from "./TaskCard";
 
-export default function KanbanColumn({ column, tasks, onDeleteTask }) {
-  const { setNodeRef } = useDroppable({
-    id: column.id,
-  });
+export default function KanbanColumn({
+  column,
+  tasks,
+  onDeleteTask,
+  onEditTask,
+}) {
+  const { setNodeRef } = useDroppable({ id: column.id });
 
   const taskIds = tasks.map((t) => t.id || t._id);
 
@@ -17,9 +20,8 @@ export default function KanbanColumn({ column, tasks, onDeleteTask }) {
       ref={setNodeRef}
       className="bg-gray-100/70 border border-gray-200 rounded-xl p-4 min-h-[500px] flex flex-col"
     >
-      {/* Column Header */}
       <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-        <h2 className="font-bold text-gray-800 text-sm uppercase tracking-wide">
+        <h2 className="font-bold text-gray-300 text-sm uppercase tracking-wide">
           {column.title}
         </h2>
         <span
@@ -29,7 +31,6 @@ export default function KanbanColumn({ column, tasks, onDeleteTask }) {
         </span>
       </div>
 
-      {/* Column Tasks Container */}
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div className="space-y-3 flex-1 overflow-y-auto">
           {tasks.length === 0 ? (
@@ -42,6 +43,7 @@ export default function KanbanColumn({ column, tasks, onDeleteTask }) {
                 key={task.id || task._id}
                 task={task}
                 onDelete={onDeleteTask}
+                onEdit={onEditTask}
               />
             ))
           )}
