@@ -27,3 +27,17 @@ export async function deleteProject(projectId) {
   const response = await axiosInstance.delete(`/projects/${projectId}`);
   return response.data;
 }
+
+export async function addMember(projectId, userId) {
+  const response = await axiosInstance.post(`/projects/${projectId}/members`, {
+    userId,
+  });
+  return response.data.member;
+}
+
+export async function removeMember(projectId, userId) {
+  const response = await axiosInstance.delete(
+    `/projects/${projectId}/members/${userId}`,
+  );
+  return response.data;
+}

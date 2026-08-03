@@ -36,7 +36,15 @@ export async function getAllProjectsService(userId) {
 export async function getProjectByIdService(projectId, userId) {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    include: { members: true },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true },
+          },
+        },
+      },
+    },
   });
 
   // 404 Not Found

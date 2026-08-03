@@ -1,0 +1,759 @@
+openapi: 3.0.0
+info:
+  title: TaskManager API
+  description: Complete API Documentation for the TaskManager Backend Application
+  version: 1.0.0
+servers:
+  - url: http://localhost:3035/api
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Role:
+      type: string
+      enum: [ADMIN, MEMBER]
+
+    Priority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+
+    Status:
+      type: string
+      enum: [TODO, IN_PROGRESS, DONE]
+
+    User:
+      type: object
+      description: Basic user info, as returned by register/login (no role included).
+      properties:
+        id:
+          type: string
+          example: cms7836ud0000f0usb4ks7w44
+        name:
+          type: string
+          example: Test Developer
+        email:
+          type: string
+          example: user@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T07:59:25.148Z"
+
+    UserProfile:
+      type: object
+      description: Full user profile, as returned by GET /auth/me and GET /users/search.
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        createdAt:
+          type: string
+          format: date-time
+
+    Member:
+      type: object
+      description: A ProjectMember row, including the nested user.
+      properties:
+        id:
+          type: string
+          example: cms7esdp90005b0us116mnou8
+        userId:
+          type: string
+        projectId:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cms7837bw0001f0usyhs921ux
+        name:
+          type: string
+          example: Test Project
+        description:
+          type: string
+          example: Project for task management
+        ownerId:
+          type: string
+          example: cms7836ud0000f0usb4ks7w44
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T07:59:25.148Z"
+        members:
+          type: array
+          description: Only present on GET /projects/{id}
+          items:
+            $ref: "#/components/schemas/Member"
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          example: cms7838zk0002f0usyhs922aa
+        title:
+          type: string
+          example: Setup Unit Tests
+        description:
+          type: string
+          example: Write tests using Jest and Supertest
+        status:
+          $ref: "#/components/schemas/Status"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        dueDate:
+          type: string
+          format: date-time
+          example: "2026-12-31T23:59:59.000Z"
+        projectId:
+          type: string
+          example: cms7837bw0001f0usyhs921ux
+        creatorId:
+          type: string
+          example: cms7836ud0000f0usb4ks7w44
+        assigneeId:
+          type: string
+          nullable: true
+          example: cms712fkn000248us5k8jlbex
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-07-30T08:00:00.000Z"
+        assignee:
+          $ref: "#/components/schemas/User"
+        creator:
+          $ref: "#/components/schemas/User"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        statusCode:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: Project not found
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==========================================
+  # AUTH ENDPOINTS
+  # ==========================================
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Test Developer
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        201:
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User created successfully
+                  user:
+                    $ref: "#/components/schemas/User"
+        400:
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        409:
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      summary: Login user and return a JWT token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: user@example.com
+                password:
+                  type: string
+                  example: Password123!
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Login successful
+                  result:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      user:
+                        $ref: "#/components/schemas/User"
+        401:
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      summary: Get the current authenticated user's profile
+      tags: [Auth]
+      responses:
+        200:
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User profile fetched successfully
+                  result:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/UserProfile"
+        401:
+          description: Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==========================================
+  # USER ENDPOINTS
+  # ==========================================
+  /users/search:
+    get:
+      summary: Find a user by exact email address (used when adding project members)
+      tags: [Users]
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+          example: user@example.com
+      responses:
+        200:
+          description: User found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+        400:
+          description: Email query parameter is required
+        404:
+          description: No user found with this email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==========================================
+  # PROJECT ENDPOINTS
+  # ==========================================
+  /projects:
+    post:
+      summary: Create a new project (creator automatically becomes a member/owner)
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description]
+              properties:
+                name:
+                  type: string
+                  example: Test Project
+                description:
+                  type: string
+                  example: Project description here
+      responses:
+        201:
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Project Created Successfully
+                  createProject:
+                    $ref: "#/components/schemas/Project"
+        401:
+          description: Unauthorized
+
+    get:
+      summary: Get all projects the authenticated user is a member of (owner or regular member)
+      tags: [Projects]
+      responses:
+        200:
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      summary: Get project details by ID (must be a member)
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          example: cms7837bw0001f0usyhs921ux
+      responses:
+        200:
+          description: Project details, including its members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  project:
+                    $ref: "#/components/schemas/Project"
+        403:
+          description: Not a member of this project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        404:
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      summary: Update project name/description (owner or ADMIN only)
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Updated Project Name
+                description:
+                  type: string
+                  example: Updated description
+      responses:
+        200:
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Project Updated Successfully
+                  updatedProject:
+                    $ref: "#/components/schemas/Project"
+        403:
+          description: Not the owner or an admin
+        404:
+          description: Project not found
+
+    delete:
+      summary: Delete a project and all of its tasks/members (owner or ADMIN only)
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Project Deleted Successfully
+                  deletedProject:
+                    $ref: "#/components/schemas/Project"
+        403:
+          description: Not the owner or an admin
+        404:
+          description: Project not found
+
+  /projects/{id}/members:
+    post:
+      summary: Add a member to the project (owner only)
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: The id of the user to add (found via GET /users/search)
+                  example: cms712fkn000248us5k8jlbex
+      responses:
+        201:
+          description: Member added successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Member added successfully
+                  member:
+                    $ref: "#/components/schemas/Member"
+        400:
+          description: User is already a member, or is the project owner
+        403:
+          description: Only the project owner can add members
+        404:
+          description: Project or user not found
+
+  /projects/{id}/members/{userId}:
+    delete:
+      summary: Remove a member from the project (owner, or a member removing themself)
+      tags: [Projects]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Member removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Member removed successfully
+                  member:
+                    $ref: "#/components/schemas/Member"
+        400:
+          description: The project owner cannot be removed
+        403:
+          description: Not authorized to remove this member
+        404:
+          description: Project not found, or user is not a member
+
+  # ==========================================
+  # TASK ENDPOINTS
+  # ==========================================
+  /projects/{projectId}/tasks:
+    post:
+      summary: Create a new task in a project (must be a project member)
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description, priority, dueDate]
+              properties:
+                title:
+                  type: string
+                  example: Setup Unit Tests
+                description:
+                  type: string
+                  example: Write tests using Jest and Supertest
+                priority:
+                  $ref: "#/components/schemas/Priority"
+                dueDate:
+                  type: string
+                  format: date-time
+                  example: "2026-12-31T23:59:59.000Z"
+                assigneeId:
+                  type: string
+                  description: Optional. Must be an existing member of the project.
+                  example: cms712fkn000248us5k8jlbex
+      responses:
+        201:
+          description: Task created successfully (status defaults to TODO)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task created successfully
+                  task:
+                    $ref: "#/components/schemas/Task"
+        400:
+          description: Missing required fields, or assignee is not a project member
+
+    get:
+      summary: Get all tasks for a project, with optional filters
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            $ref: "#/components/schemas/Status"
+          description: Filter tasks by status
+        - in: query
+          name: priority
+          schema:
+            $ref: "#/components/schemas/Priority"
+          description: Filter tasks by priority
+        - in: query
+          name: assigneeId
+          schema:
+            type: string
+          description: Filter tasks by assignee
+      responses:
+        200:
+          description: List of tasks, sorted by newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tasks retrieved successfully
+                  count:
+                    type: integer
+                    example: 2
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Task"
+
+  /projects/{projectId}/tasks/{taskId}:
+    get:
+      summary: Get task details by ID
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  task:
+                    $ref: "#/components/schemas/Task"
+        404:
+          description: Task not found
+
+    put:
+      summary: Update a task (creator, assignee, or project owner only)
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: All fields optional — only the provided fields are updated.
+              properties:
+                title:
+                  type: string
+                  example: Updated Task Title
+                description:
+                  type: string
+                  example: Updated description
+                status:
+                  $ref: "#/components/schemas/Status"
+                priority:
+                  $ref: "#/components/schemas/Priority"
+                dueDate:
+                  type: string
+                  format: date-time
+                assigneeId:
+                  type: string
+      responses:
+        200:
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task updated successfully
+                  task:
+                    $ref: "#/components/schemas/Task"
+        403:
+          description: Not the creator, assignee, or project owner
+        404:
+          description: Task not found
+
+    delete:
+      summary: Delete a task (creator, project owner, or ADMIN only)
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: taskId
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Task deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task deleted successfully
+        403:
+          description: Not the creator, project owner, or an admin
+        404:
+          description: Task not found
